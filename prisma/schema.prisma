@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  ADMIN
+  TEACHER
+  PARENT
+}
+
+enum ClassType {
+  AFTER_SCHOOL
+  EXERCISE
+  CPP
+  OLYMPIAD_MATH
+}
+
+enum PracticeSource {
+  MANUAL
+  AI_VARIATION
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      UserRole @default(TEACHER)
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  feedbacks     DailyFeedback[]
+  mistakes      Mistake[]
+  practices     Practice[]
+  learningPlans LearningPlan[]
+  parentStudents ParentStudent[]
+}
+
+model Student {
+  id          String @id @default(cuid())
+  name        String
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  enrollments    ClassEnrollment[]
+  feedbacks      DailyFeedback[]
+  mistakes       Mistake[]
+  practices      Practice[]
+  learningPlans  LearningPlan[]
+  parentStudents ParentStudent[]
+}
+
+model ParentStudent {
+  id        String @id @default(cuid())
+  parentId  String
+  studentId String
+  createdAt DateTime @default(now())
+
+  parent  User    @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: id, onDelete: Cascade)
+
+  @@unique([parentId, studentId])
+}
+
+model Class {
+  id          String    @id @default(cuid())
+  name        String
+  type        ClassType
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  enrollments ClassEnrollment[]
+  feedbacks   DailyFeedback[]
+  mistakes    Mistake[]
+  practices   Practice[]
+}
+
+model ClassEnrollment {
+  id        String @id @default(cuid())
+  studentId String
+  classId   String
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, classId])
+}
+
+model DailyFeedback {
+  id          String   @id @default(cuid())
+  studentId   String
+  classId     String
+  date        DateTime @default(now())
+  keyPoints   String
+  aiSummary   String?
+  isPublished Boolean  @default(false)
+  teacherId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher User    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+}
+
+model Mistake {
+  id            String   @id @default(cuid())
+  studentId     String
+  classId       String?
+  subject       String
+  content       String
+  reason        String?
+  knowledgeTag  String?
+  aiVariation   String?
+  isVariationUsed Boolean @default(false)
+  teacherId     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class?  @relation(fields: [classId], references: [id], onDelete: SetNull)
+  teacher User    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  practices Practice[]
+}
+
+model Practice {
+  id          String         @id @default(cuid())
+  studentId   String
+  classId     String?
+  title       String
+  content     String
+  source      PracticeSource @default(MANUAL)
+  sourceId    String?
+  isPublished Boolean        @default(false)
+  teacherId   String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class?  @relation(fields: [classId], references: [id], onDelete: SetNull)
+  teacher User    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  mistake Mistake? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  @@index([sourceId])
+}
+
+model LearningPlan {
+  id        String   @id @default(cuid())
+  studentId String
+  title     String
+  content   String
+  startDate DateTime
+  endDate   DateTime
+  teacherId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher User    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+}
