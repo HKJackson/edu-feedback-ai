@@ -3,8 +3,10 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@prisma/client";
+import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -35,10 +37,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
-  session: {
-    strategy: "jwt",
-  },
   callbacks: {
+    ...authConfig.callbacks,
     jwt: async ({ token, user }) => {
       if (user) {
         token.id = user.id;
@@ -53,27 +53,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return session;
     },
-    authorized: async ({ auth, request: { nextUrl } }) => {
-      const isLoggedIn = !!auth?.user;
-      const role = auth?.user?.role as UserRole | undefined;
-      const pathname = nextUrl.pathname;
-
-      if (pathname.startsWith("/teacher")) {
-        return isLoggedIn && (role === "TEACHER" || role === "ADMIN");
-      }
-
-      if (pathname.startsWith("/parent")) {
-        return isLoggedIn && role === "PARENT";
-      }
-
-      if (pathname === "/login" || pathname === "/parent/login") {
-        return true;
-      }
-
-      return true;
-    },
-  },
-  pages: {
-    signIn: "/login",
   },
 });
