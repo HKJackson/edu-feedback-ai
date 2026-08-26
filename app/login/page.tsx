@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { login } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,30 +9,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    const formData = new FormData(e.currentTarget);
+    const result = await login(formData);
 
     setLoading(false);
 
     if (result?.error) {
-      toast.error("邮箱或密码错误");
-      return;
+      toast.error(result.error);
     }
-
-    router.push("/teacher");
-    router.refresh();
   };
 
   return (
@@ -49,9 +38,8 @@ export default function LoginPage() {
               <Label htmlFor="email">邮箱</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 placeholder="teacher@edu.local"
                 required
               />
@@ -60,9 +48,8 @@ export default function LoginPage() {
               <Label htmlFor="password">密码</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••"
                 required
               />
